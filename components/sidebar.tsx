@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/calendar", label: "Calendar", icon: "▦" },
   { href: "/journal", label: "Journal", icon: "✎" },
   { href: "/handtags", label: "Hand Tags", icon: "#" },
+  { href: "/captures", label: "Captures", icon: "⬡" },
   { href: "/feed", label: "Team Feed", icon: "◎" },
   { href: "/settings", label: "Settings", icon: "⚙" },
 ]

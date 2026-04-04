@@ -73,14 +73,28 @@ model JournalEntry {
 }
 
 model HandTag {
-  id        String   @id @default(cuid())
-  userId    String
-  date      String
-  tagText   String
-  imageUrl  String?
-  linkUrl   String?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  id          String          @id @default(cuid())
+  userId      String
+  date        String
+  tagText     String
+  imageUrl    String?
+  linkUrl     String?
+  createdAt   DateTime        @default(now())
+  user        User            @relation(fields: [userId], references: [id])
+  screenshots ScreenshotTag[]
+}
+
+model ScreenshotTag {
+  id           String     @id @default(cuid())
+  screenshotId String
+  handTagId    String
+  createdAt    DateTime   @default(now())
+
+  screenshot   Screenshot @relation(fields: [screenshotId], references: [id], onDelete: Cascade)
+  handTag      HandTag    @relation(fields: [handTagId], references: [id], onDelete: Cascade)
+
+  @@unique([screenshotId, handTagId])
+  @@map("screenshot_tags")
 }
 
 model FeedPost {
@@ -103,15 +117,16 @@ model FeedComment {
 }
 
 model Screenshot {
-  id          String   @id @default(cuid())
+  id          String          @id @default(cuid())
   url         String
   storagePath String
   takenBy     String?
   note        String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime        @default(now())
 
   userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
+  user        User?           @relation(fields: [userId], references: [id])
+  tags        ScreenshotTag[]
 
   @@map("screenshots")
 }

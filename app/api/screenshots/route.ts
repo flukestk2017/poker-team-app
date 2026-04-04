@@ -16,6 +16,7 @@ export async function GET() {
     take: 100,
     include: {
       user: { select: { username: true, displayName: true } },
+      tags: { include: { handTag: true } },
     },
   })
 
