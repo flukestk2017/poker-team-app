@@ -1,15 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { signIn } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [username, setUsername] = useState("")
-  const [pin, setPin] = useState("")
+  const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+
+  const verified = searchParams.get("verified") === "true"
+  const tokenError = searchParams.get("error")
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -18,14 +23,18 @@ export default function LoginPage() {
 
     const result = await signIn("credentials", {
       username,
-      pin,
+      password,
       redirect: false,
     })
 
     setLoading(false)
 
     if (result?.error) {
-      setError("Username หรือ PIN ไม่ถูกต้อง")
+      if (result.error.includes("ยืนยัน email")) {
+        setError("กรุณายืนยัน email ก่อน login")
+      } else {
+        setError("Username หรือ Password ไม่ถูกต้อง")
+      }
     } else {
       router.push("/")
       router.refresh()
@@ -33,22 +42,54 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#FAF8F5' }}>
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gray-900 mb-4">
-            <span className="text-white text-sm font-bold">PT</span>
+          <div
+            className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-4"
+            style={{ background: '#8B6F47' }}
+          >
+            <span className="text-sm font-bold" style={{ color: '#FAF8F5' }}>DK</span>
           </div>
-          <h1 className="text-xl font-semibold text-gray-900">Poker Team</h1>
-          <p className="mt-1 text-sm text-gray-400">Study Tracking Platform</p>
+          <h1 className="text-xl font-semibold" style={{ color: '#2C2825' }}>DEKpocarr</h1>
+          <p className="mt-1 text-sm" style={{ color: '#8C7B6B' }}>Poker Team Management</p>
         </div>
 
+        {/* Messages */}
+        {verified && (
+          <div
+            className="mb-4 p-3 rounded-lg text-sm text-center"
+            style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', color: '#166534' }}
+          >
+            ยืนยัน email สำเร็จ! สามารถ login ได้เลย
+          </div>
+        )}
+        {tokenError === 'token-expired' && (
+          <div
+            className="mb-4 p-3 rounded-lg text-sm text-center"
+            style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C' }}
+          >
+            Link ยืนยันหมดอายุแล้ว กรุณาสมัครใหม่
+          </div>
+        )}
+        {tokenError === 'invalid-token' && (
+          <div
+            className="mb-4 p-3 rounded-lg text-sm text-center"
+            style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C' }}
+          >
+            Link ไม่ถูกต้อง
+          </div>
+        )}
+
         {/* Form */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+        <div
+          className="rounded-2xl p-8 shadow-sm"
+          style={{ background: '#FFFFFF', border: '1px solid #DDD5C8' }}
+        >
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">
+              <label className="text-sm font-medium" style={{ color: '#2C2825' }}>
                 Username
               </label>
               <input
@@ -58,39 +99,64 @@ export default function LoginPage() {
                 placeholder="กรอก username"
                 required
                 autoFocus
-                className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-300 outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-100 transition-all"
+                className="w-full h-10 px-3 rounded-lg text-sm outline-none transition-all"
+                style={{
+                  border: '1px solid #DDD5C8',
+                  background: '#FAF8F5',
+                  color: '#2C2825',
+                }}
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">
-                PIN
+              <label className="text-sm font-medium" style={{ color: '#2C2825' }}>
+                Password
               </label>
               <input
                 type="password"
-                value={pin}
-                onChange={(e) => setPin(e.target.value.slice(0, 6))}
-                placeholder="••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••"
                 required
-                inputMode="numeric"
-                className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-300 outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-100 transition-all tracking-widest"
+                className="w-full h-10 px-3 rounded-lg text-sm outline-none transition-all"
+                style={{
+                  border: '1px solid #DDD5C8',
+                  background: '#FAF8F5',
+                  color: '#2C2825',
+                }}
               />
             </div>
 
             {error && (
-              <p className="text-xs text-red-500 text-center">{error}</p>
+              <p className="text-xs text-center" style={{ color: '#B91C1C' }}>{error}</p>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-10 rounded-lg bg-gray-900 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-10 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: '#8B6F47', color: '#FAF8F5' }}
             >
               {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
             </button>
+
+            <p className="text-center text-sm" style={{ color: '#8C7B6B' }}>
+              ยังไม่มีบัญชี?{' '}
+              <Link href="/register" className="font-medium hover:underline" style={{ color: '#8B6F47' }}>
+                สมัครสมาชิก
+              </Link>
+            </p>
           </form>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" style={{ background: '#FAF8F5' }} />}>
+      <LoginForm />
+    </Suspense>
   )
 }

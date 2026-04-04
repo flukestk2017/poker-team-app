@@ -10,6 +10,7 @@ interface Screenshot {
   takenBy: string | null
   note: string | null
   createdAt: string
+  user?: { username: string; displayName: string } | null
 }
 
 export function ScreenshotGallery() {
@@ -61,8 +62,8 @@ export function ScreenshotGallery() {
   if (loading) {
     return (
       <div className="mt-6">
-        <h2 className="text-sm font-medium text-gray-500 mb-3">Screenshots</h2>
-        <p className="text-xs text-gray-400">กำลังโหลด...</p>
+        <h2 className="text-sm font-medium mb-3" style={{ color: '#8C7B6B' }}>Screenshots</h2>
+        <p className="text-xs" style={{ color: '#8C7B6B' }}>กำลังโหลด...</p>
       </div>
     )
   }
@@ -72,20 +73,24 @@ export function ScreenshotGallery() {
       <div className="mt-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-medium text-gray-500">
+          <h2 className="text-sm font-medium" style={{ color: '#8C7B6B' }}>
             Screenshots {screenshots.length > 0 && `(${screenshots.length})`}
           </h2>
           <button
             onClick={fetchScreenshots}
-            className="text-xs text-gray-300 hover:text-gray-500 transition-colors"
+            className="text-xs transition-colors"
+            style={{ color: '#8C7B6B' }}
           >
             รีเฟรช
           </button>
         </div>
 
         {screenshots.length === 0 ? (
-          <div className="bg-white rounded-xl border border-dashed border-gray-200 p-8 text-center">
-            <p className="text-sm text-gray-400">
+          <div
+            className="rounded-xl p-8 text-center"
+            style={{ background: '#FFFFFF', border: '1px dashed #DDD5C8' }}
+          >
+            <p className="text-sm" style={{ color: '#8C7B6B' }}>
               ยังไม่มีภาพ — กด ✂️ หรือ Ctrl+Shift+S เพื่อ Snip
             </p>
           </div>
@@ -94,7 +99,8 @@ export function ScreenshotGallery() {
             {screenshots.map((shot) => (
               <div
                 key={shot.id}
-                className="group relative rounded-lg overflow-hidden border border-gray-100 bg-gray-50 aspect-video cursor-pointer"
+                className="group relative rounded-lg overflow-hidden aspect-video cursor-pointer"
+                style={{ border: '1px solid #DDD5C8', background: '#F0EBE3' }}
                 onClick={() => setLightbox(shot)}
               >
                 {/* Thumbnail */}
@@ -109,8 +115,8 @@ export function ScreenshotGallery() {
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-end">
                   <div className="p-2 w-full opacity-0 group-hover:opacity-100 transition-opacity">
                     <p className="text-white text-xs truncate">{formatDate(shot.createdAt)}</p>
-                    {shot.takenBy && (
-                      <p className="text-white/60 text-xs truncate">{shot.takenBy}</p>
+                    {shot.user && (
+                      <p className="text-white/70 text-xs truncate">{shot.user.displayName}</p>
                     )}
                   </div>
                 </div>
@@ -135,23 +141,25 @@ export function ScreenshotGallery() {
           onClick={() => setLightbox(null)}
         >
           <div
-            className="relative max-w-4xl w-full bg-white rounded-xl overflow-hidden shadow-2xl"
+            className="relative max-w-4xl w-full rounded-xl overflow-hidden shadow-2xl"
+            style={{ background: '#FFFFFF' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={lightbox.url}
               alt={lightbox.note ?? 'screenshot'}
-              className="w-full max-h-[70vh] object-contain bg-gray-50"
+              className="w-full max-h-[70vh] object-contain"
+              style={{ background: '#F0EBE3' }}
             />
 
             <div className="px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
               <div>
-                <p className="text-sm font-medium text-gray-700">
+                <p className="text-sm font-medium" style={{ color: '#2C2825' }}>
                   {formatDate(lightbox.createdAt)}
                 </p>
-                {lightbox.takenBy && (
-                  <p className="text-xs text-gray-400">{lightbox.takenBy}</p>
+                {lightbox.user && (
+                  <p className="text-xs" style={{ color: '#8C7B6B' }}>{lightbox.user.displayName}</p>
                 )}
               </div>
 
@@ -162,8 +170,9 @@ export function ScreenshotGallery() {
                     'text-xs px-3 py-1.5 rounded-lg border transition-colors',
                     copied
                       ? 'border-green-300 bg-green-50 text-green-700'
-                      : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                      : 'hover:opacity-80'
                   )}
+                  style={copied ? {} : { borderColor: '#DDD5C8', color: '#5C4A32' }}
                 >
                   {copied ? '✅ Copied!' : 'Copy URL'}
                 </button>
@@ -171,7 +180,8 @@ export function ScreenshotGallery() {
                   href={lightbox.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors"
+                  className="text-xs px-3 py-1.5 rounded-lg border transition-colors hover:opacity-80"
+                  style={{ borderColor: '#DDD5C8', color: '#5C4A32' }}
                 >
                   เปิดใน Tab
                 </a>

@@ -17,12 +17,22 @@ model User {
   discordWebhook    String?
   notifyHoursBefore Int            @default(1)
   createdAt         DateTime       @default(now())
+
+  // Email auth fields
+  email             String?        @unique
+  password          String?
+  emailVerified     DateTime?
+  verifyToken       String?        @unique
+  verifyTokenExpiry DateTime?
+  isActive          Boolean        @default(true)
+
   tasks             DailyTask[]
   userTasks         UserTask[]
   journals          JournalEntry[]
   handTags          HandTag[]
   feedPosts         FeedPost[]
   feedComments      FeedComment[]
+  screenshots       Screenshot[]
 }
 
 model DailyTask {
@@ -99,6 +109,9 @@ model Screenshot {
   takenBy     String?
   note        String?
   createdAt   DateTime @default(now())
+
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
 
   @@map("screenshots")
 }

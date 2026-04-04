@@ -1,6 +1,7 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { db } from "@/lib/db"
+import bcrypt from "bcryptjs"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -8,30 +9,41 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       name: "credentials",
       credentials: {
         username: { label: "Username", type: "text" },
-        pin: { label: "PIN", type: "password" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.username || !credentials?.pin) return null
+        if (!credentials?.username || !credentials?.password) return null
 
         try {
-          // ดึง User จาก Database
           const user = await db.user.findUnique({
-            where: { 
-              username: String(credentials.username) 
+            where: {
+              username: String(credentials.username),
             },
           })
 
-          // LOG เพื่อเช็คใน Vercel (ถ้าหาไม่เจอจะขึ้น null)
           console.log("Login Attempt - User found:", user ? user.username : "NOT FOUND")
 
           if (!user) return null
 
-          // เทียบ PIN (ใช้ String() เพื่อป้องกันปัญหาเรื่อง Type ของเลข 0)
-          const isPinValid = String(user.pin) === String(credentials.pin)
-          
-          console.log("PIN Validation:", isPinValid ? "SUCCESS" : "FAILED")
+          // เช็ค isActive (เฉพาะ user ที่ใช้ email registration)
+          if (user.email && !user.isActive) {
+            throw new Error("กรุณายืนยัน email ก่อน login")
+          }
 
-          if (!isPinValid) return null
+          // ถ้ามี password hash (ใหม่) ใช้ bcrypt
+          if (user.password) {
+            const isValid = await bcrypt.compare(
+              String(credentials.password),
+              user.password
+            )
+            console.log("Password Validation:", isValid ? "SUCCESS" : "FAILED")
+            if (!isValid) return null
+          } else {
+            // backward compat — ใช้ PIN เดิม
+            const isPinValid = String(user.pin) === String(credentials.password)
+            console.log("PIN Validation:", isPinValid ? "SUCCESS" : "FAILED")
+            if (!isPinValid) return null
+          }
 
           return {
             id: user.id,
@@ -41,7 +53,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
         } catch (error) {
           console.error("Auth Error:", error)
-          return null
+          throw error
         }
       },
     }),
@@ -72,6 +84,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
     strategy: "jwt",
   },
-  // เพิ่ม secret เพื่อความชัวร์เวลาอยู่บน Vercel
-  secret: process.env.NEXTAUTH_SECRET, 
+  secret: process.env.NEXTAUTH_SECRET,
 })

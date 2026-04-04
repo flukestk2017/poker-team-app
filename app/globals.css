@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -49,38 +49,39 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  /* Warm Cream Palette */
+  --background: #FAF8F5;
+  --foreground: #2C2825;
+  --card: #FFFFFF;
+  --card-foreground: #2C2825;
+  --popover: #FFFFFF;
+  --popover-foreground: #2C2825;
+  --primary: #8B6F47;
+  --primary-foreground: #FAF8F5;
+  --secondary: #F0EBE3;
+  --secondary-foreground: #5C4A32;
+  --muted: #E8E0D5;
+  --muted-foreground: #8C7B6B;
+  --accent: #C4A882;
+  --accent-foreground: #2C2825;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --border: #DDD5C8;
+  --input: #DDD5C8;
+  --ring: #8B6F47;
+  --chart-1: #8B6F47;
+  --chart-2: #C4A882;
+  --chart-3: #5C4A32;
+  --chart-4: #E8E0D5;
+  --chart-5: #2C2825;
+  --radius: 0.5rem;
+  --sidebar: #F5F0E8;
+  --sidebar-foreground: #2C2825;
+  --sidebar-primary: #8B6F47;
+  --sidebar-primary-foreground: #FAF8F5;
+  --sidebar-accent: #EDE5D8;
+  --sidebar-accent-foreground: #2C2825;
+  --sidebar-border: #DDD5C8;
+  --sidebar-ring: #8B6F47;
 }
 
 .dark {

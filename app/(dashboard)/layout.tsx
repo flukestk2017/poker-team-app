@@ -11,7 +11,7 @@ export default async function DashboardLayout({
   if (!session) redirect("/login")
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-background">
       <Sidebar user={session.user} />
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-6 py-8">{children}</div>
