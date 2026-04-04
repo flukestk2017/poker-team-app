@@ -10,17 +10,18 @@ export default async function HandTagsPage() {
   const session = await auth()
   const today = getTodayDate()
 
-  const tags = await db.handTag.findMany({
-    where: { userId: session!.user.id, date: today },
-    orderBy: { createdAt: "asc" },
-    select: {
-      id: true,
-      tagText: true,
-      imageUrl: true,
-      linkUrl: true,
-      createdAt: true,
-    },
-  })
+  const [tags, topics] = await Promise.all([
+    db.handTag.findMany({
+      where: { userId: session!.user.id, date: today },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, tagText: true, imageUrl: true, linkUrl: true, createdAt: true },
+    }),
+    db.handTag.findMany({
+      where: { userId: session!.user.id, date: '_topics_' },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, tagText: true },
+    }),
+  ])
 
   const dateLabel = new Date().toLocaleDateString("th-TH", {
     weekday: "long",
@@ -39,6 +40,7 @@ export default async function HandTagsPage() {
       <HandTagList
         date={today}
         initialTags={tags}
+        initialTopics={topics}
       />
     </div>
   )

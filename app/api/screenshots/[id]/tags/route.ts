@@ -37,8 +37,14 @@ export async function POST(
     const cleanText = text.replace(/^#/, '').trim().toLowerCase()
     if (!cleanText) continue
 
-    // Find existing HandTag or create new one
+    // Find existing topic HandTag first, then any HandTag with matching text
     let handTag = await db.handTag.findFirst({
+      where: {
+        userId: session.user.id,
+        tagText: { equals: cleanText, mode: 'insensitive' },
+        date: '_topics_',
+      },
+    }) ?? await db.handTag.findFirst({
       where: {
         userId: session.user.id,
         tagText: { equals: cleanText, mode: 'insensitive' },
@@ -46,11 +52,12 @@ export async function POST(
     })
 
     if (!handTag) {
+      // สร้าง topic ใหม่ถ้ายังไม่มี
       handTag = await db.handTag.create({
         data: {
           userId: session.user.id,
           tagText: cleanText,
-          date: today,
+          date: '_topics_',
         },
       })
     }

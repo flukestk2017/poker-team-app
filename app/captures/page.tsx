@@ -105,15 +105,6 @@ function CapturesContent() {
     ? screenshots.filter(s => s.tags.some(t => t.handTag.tagText === filterTag))
     : screenshots
 
-  const suggestions = allTags.filter(
-    t =>
-      tagInput.length > 0 &&
-      t.tagText.includes(tagInput.toLowerCase().replace(/^#/, '')) &&
-      !currentTags.find(ct => ct.tagText === t.tagText)
-  )
-
-  const uniqueTagTexts = [...new Set(allTags.map(t => t.tagText))]
-
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center" style={{ color: '#8C7B6B' }}>
@@ -135,7 +126,7 @@ function CapturesContent() {
         </div>
 
         {/* Filter tags */}
-        {uniqueTagTexts.length > 0 && (
+        {allTags.length > 0 && (
           <div className="flex-shrink-0 px-3 py-2 flex flex-wrap gap-1" style={{ borderBottom: '1px solid #DDD5C8' }}>
             <button
               onClick={() => setFilterTag(null)}
@@ -146,16 +137,16 @@ function CapturesContent() {
             >
               ทั้งหมด
             </button>
-            {uniqueTagTexts.slice(0, 8).map(text => (
+            {allTags.slice(0, 8).map(tag => (
               <button
-                key={text}
-                onClick={() => setFilterTag(filterTag === text ? null : text)}
+                key={tag.id}
+                onClick={() => setFilterTag(filterTag === tag.tagText ? null : tag.tagText)}
                 className="text-xs px-2 py-0.5 rounded-full transition-colors"
-                style={filterTag === text
+                style={filterTag === tag.tagText
                   ? { background: '#8B6F47', color: '#FAF8F5' }
                   : { background: '#EDE5D8', color: '#5C4A32' }}
               >
-                #{text}
+                #{tag.tagText}
               </button>
             ))}
           </div>
@@ -262,31 +253,29 @@ function CapturesContent() {
                 </div>
               </div>
 
-              {/* Current tags */}
-              {currentTags.length > 0 && (
+              {/* Topic chips — กดเลือก/ยกเลิก */}
+              {allTags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {currentTags.map(tag => (
-                    <span
-                      key={tag.tagText}
-                      className="inline-flex items-center gap-1 text-sm px-2.5 py-1 rounded-full"
-                      style={{ background: '#EDE5D8', color: '#5C4A32' }}
-                    >
-                      #{tag.tagText}
+                  {allTags.map(tag => {
+                    const isSelected = !!currentTags.find(t => t.tagText === tag.tagText)
+                    return (
                       <button
-                        onClick={() => removeTag(tag.tagText)}
-                        className="leading-none ml-0.5 transition-colors"
-                        style={{ color: '#8C7B6B' }}
-                        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#2C2825')}
-                        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#8C7B6B')}
+                        key={tag.id}
+                        onClick={() => isSelected ? removeTag(tag.tagText) : addTag(tag.tagText)}
+                        className="text-sm px-2.5 py-1 rounded-full transition-colors font-medium"
+                        style={isSelected
+                          ? { background: '#8B6F47', color: '#FAF8F5' }
+                          : { background: '#EDE5D8', color: '#5C4A32' }
+                        }
                       >
-                        ×
+                        #{tag.tagText}
                       </button>
-                    </span>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
 
-              {/* Tag input + save */}
+              {/* Custom tag input + save */}
               <div className="flex gap-2">
                 <div className="flex-1 relative">
                   <input
@@ -300,7 +289,7 @@ function CapturesContent() {
                         addTag(tagInput)
                       }
                     }}
-                    placeholder="เพิ่ม #tag... (กด Enter)"
+                    placeholder="หรือพิมพ์ tag เพิ่มเติม... (กด Enter)"
                     className="w-full px-3 py-2 text-sm rounded-lg outline-none"
                     style={{
                       border: '1px solid #DDD5C8',
@@ -310,26 +299,6 @@ function CapturesContent() {
                     onFocus={e => ((e.currentTarget as HTMLElement).style.borderColor = '#8B6F47')}
                     onBlur={e => ((e.currentTarget as HTMLElement).style.borderColor = '#DDD5C8')}
                   />
-                  {/* Suggestions */}
-                  {suggestions.length > 0 && (
-                    <div
-                      className="absolute bottom-full left-0 right-0 mb-1 rounded-lg overflow-hidden z-10"
-                      style={{ background: '#FFFFFF', border: '1px solid #DDD5C8', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
-                    >
-                      {suggestions.map(tag => (
-                        <button
-                          key={tag.id}
-                          onMouseDown={e => { e.preventDefault(); addTag(tag.tagText) }}
-                          className="w-full text-left px-3 py-2 text-sm transition-colors"
-                          style={{ color: '#2C2825' }}
-                          onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = '#F5F0E8')}
-                          onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
-                        >
-                          #{tag.tagText}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
                 <button
                   onClick={saveTags}
@@ -340,6 +309,27 @@ function CapturesContent() {
                   {saving ? 'กำลังบันทึก...' : saved ? '✓ บันทึกแล้ว' : 'บันทึก'}
                 </button>
               </div>
+
+              {/* Selected custom tags (ที่ไม่ได้อยู่ใน topic library) */}
+              {currentTags.filter(t => !allTags.find(a => a.tagText === t.tagText)).length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {currentTags.filter(t => !allTags.find(a => a.tagText === t.tagText)).map(tag => (
+                    <span
+                      key={tag.tagText}
+                      className="inline-flex items-center gap-1 text-sm px-2.5 py-1 rounded-full"
+                      style={{ background: '#8B6F47', color: '#FAF8F5' }}
+                    >
+                      #{tag.tagText}
+                      <button
+                        onClick={() => removeTag(tag.tagText)}
+                        className="leading-none ml-0.5 opacity-70 hover:opacity-100 transition-opacity"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </>
         ) : (

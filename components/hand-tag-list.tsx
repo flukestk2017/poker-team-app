@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition, useRef, useEffect } from "react"
-import { addHandTag, deleteHandTag } from "@/app/actions/handtags"
+import { addHandTag, deleteHandTag, addTopic, deleteTopic } from "@/app/actions/handtags"
 import { supabase } from "@/lib/supabase"
 
 interface HandTag {
@@ -12,14 +12,22 @@ interface HandTag {
   createdAt: Date
 }
 
+interface Topic {
+  id: string
+  tagText: string
+}
+
 interface HandTagListProps {
   date: string
   initialTags: HandTag[]
+  initialTopics: Topic[]
 }
 
-export default function HandTagList({ date, initialTags }: HandTagListProps) {
+export default function HandTagList({ date, initialTags, initialTopics }: HandTagListProps) {
   const [tags, setTags] = useState(initialTags)
+  const [topics, setTopics] = useState(initialTopics)
   const [input, setInput] = useState("")
+  const [topicInput, setTopicInput] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [linkUrl, setLinkUrl] = useState("")
   const [uploading, setUploading] = useState(false)
@@ -97,12 +105,84 @@ export default function HandTagList({ date, initialTags }: HandTagListProps) {
     })
   }
 
+  function handleAddTopic() {
+    const clean = topicInput.replace(/^#/, '').trim().toLowerCase()
+    if (!clean) return
+    if (topics.find(t => t.tagText === clean)) { setTopicInput(""); return }
+    const optimistic: Topic = { id: `temp-${Date.now()}`, tagText: clean }
+    setTopics(prev => [...prev, optimistic])
+    setTopicInput("")
+    startTransition(async () => {
+      await addTopic({ tagText: clean })
+    })
+  }
+
+  function handleDeleteTopic(id: string) {
+    setTopics(prev => prev.filter(t => t.id !== id))
+    if (id.startsWith("temp-")) return
+    startTransition(async () => {
+      await deleteTopic({ id })
+    })
+  }
+
   return (
     <>
     <div className="space-y-4">
+
+      {/* Topics library */}
+      <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">หัวข้อ (Topics)</label>
+          <p className="text-xs text-gray-400 mt-0.5">จัดการหัวข้อที่ใช้บ่อย กดเลือกได้เลยในหน้า Captures</p>
+        </div>
+
+        {/* Existing topics */}
+        <div className="flex flex-wrap gap-2 min-h-[28px]">
+          {topics.length === 0 ? (
+            <p className="text-xs text-gray-300">ยังไม่มีหัวข้อ</p>
+          ) : (
+            topics.map(topic => (
+              <span
+                key={topic.id}
+                className="inline-flex items-center gap-1 text-sm px-2.5 py-1 rounded-full"
+                style={{ background: '#EDE5D8', color: '#5C4A32' }}
+              >
+                #{topic.tagText}
+                <button
+                  onClick={() => handleDeleteTopic(topic.id)}
+                  disabled={isPending}
+                  className="leading-none ml-0.5 text-gray-400 hover:text-red-400 transition-colors disabled:opacity-40"
+                >
+                  ×
+                </button>
+              </span>
+            ))
+          )}
+        </div>
+
+        {/* Add topic */}
+        <div className="flex gap-2">
+          <input
+            className="flex-1 text-sm border border-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder-gray-300"
+            placeholder="เพิ่มหัวข้อใหม่ เช่น preflop, bluff..."
+            value={topicInput}
+            onChange={e => setTopicInput(e.target.value.replace(/\s/g, ''))}
+            onKeyDown={e => e.key === "Enter" && handleAddTopic()}
+            disabled={isPending}
+          />
+          <button
+            onClick={handleAddTopic}
+            disabled={isPending || !topicInput.trim()}
+            className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-40"
+          >
+            เพิ่ม
+          </button>
+        </div>
+      </div>
+
       {/* Input */}
       <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3">
-        <label className="block text-sm font-medium text-gray-700">เพิ่ม Hand Tag</label>
+        <label className="block text-sm font-medium text-gray-700">เพิ่ม Hand Tag วันนี้</label>
 
         <input
           className="w-full text-sm border border-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder-gray-300"
