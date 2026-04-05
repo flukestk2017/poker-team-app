@@ -26,18 +26,29 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await auth()
   const body = await req.json()
-  const { url, storagePath, takenBy, note } = body
+  const { url, storagePath, takenBy, note, snipToken } = body
 
   if (!url || !storagePath) {
     return NextResponse.json({ error: 'url and storagePath required' }, { status: 400 })
+  }
+
+  let userId = session?.user?.id || null
+  let resolvedUsername = session?.user?.username || takenBy || 'desktop-app'
+
+  if (!session?.user && snipToken) {
+    const tokenUser = await db.user.findUnique({ where: { snipToken } })
+    if (tokenUser && tokenUser.snipTokenExpiry && tokenUser.snipTokenExpiry > new Date()) {
+      userId = tokenUser.id
+      resolvedUsername = tokenUser.username
+    }
   }
 
   const screenshot = await db.screenshot.create({
     data: {
       url,
       storagePath,
-      takenBy: session?.user?.username || takenBy || 'desktop-app',
-      userId: session?.user?.id || null,
+      takenBy: resolvedUsername,
+      userId,
       note: note ?? null,
     },
   })

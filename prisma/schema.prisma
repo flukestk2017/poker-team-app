@@ -26,6 +26,10 @@ model User {
   verifyTokenExpiry DateTime?
   isActive          Boolean        @default(true)
 
+  // Snip token for desktop app
+  snipToken        String?        @unique
+  snipTokenExpiry  DateTime?
+
   tasks             DailyTask[]
   userTasks         UserTask[]
   journals          JournalEntry[]
