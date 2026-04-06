@@ -1,14 +1,22 @@
 export const VOCAB_SYSTEM = `You are an English language coach helping Thai poker players understand the phrases their poker coaches use. Return ONLY valid JSON with no extra text or markdown.`;
 
-export const VOCAB_USER = `Generate 7 coaching phrases that a poker coach would actually say during a hand review session or training class.
-Focus on: connector words, question patterns, explanation phrases, and challenge phrases. NOT poker terminology itself.
+export const VOCAB_USER = `Generate 7 poker coaching phrases that a coach would say during a hand review session.
+Focus on: question patterns, explanation phrases, connector words, and challenge phrases. NOT poker terminology itself.
 Return a JSON array with no markdown:
 [{
   "phrase": "full English phrase the coach says",
-  "thai_meaning": "ความหมายภาษาไทย",
+  "thai_meaning": "ความหมายภาษาไทยของทั้งประโยค",
+  "phrase_type": "question" | "statement" | "transition" | "challenge",
+  "word_breakdown": [{"word": "each", "thai": "แต่ละ"}, {"word": "English", "thai": "อังกฤษ"}, ...],
+  "keywords": ["key", "words", "to", "remember"],
   "situation": "สถานการณ์ที่โค้ชพูดแบบนี้ (1-2 ประโยค)",
-  "keywords": ["important", "words", "to", "remember"]
-}]`;
+  "similar_phrases": ["Alternative phrase 1 the coach might say", "Alternative phrase 2"]
+}]
+Rules:
+- phrase_type must be one of: question, statement, transition, challenge
+- word_breakdown must cover every word in the phrase in order
+- keywords are the most important English words to memorize (2-4 words)
+- similar_phrases: 1-2 alternative English phrases with the same meaning/use`;
 
 export const COACH_SYSTEM = `You are Coach Alex, a professional poker coach teaching a Thai student who is learning English.
 Your role is to:

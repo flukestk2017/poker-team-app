@@ -15,6 +15,33 @@ const NAV_ITEMS = [
   { href: "/settings", label: "Settings", icon: "⚙" },
 ]
 
+const TRAINER_ITEM = { href: "/trainer/dashboard", label: "PokerENG", icon: "🃏" }
+
+function NavLink({ href, icon, label, isActive }: { href: string; icon: string; label: string; isActive: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors")}
+      style={isActive ? { background: '#EDE5D8', color: '#2C2825', fontWeight: 500 } : { color: '#8C7B6B' }}
+      onMouseEnter={e => {
+        if (!isActive) {
+          (e.currentTarget as HTMLElement).style.background = '#EDE5D8'
+          ;(e.currentTarget as HTMLElement).style.color = '#2C2825'
+        }
+      }}
+      onMouseLeave={e => {
+        if (!isActive) {
+          (e.currentTarget as HTMLElement).style.background = 'transparent'
+          ;(e.currentTarget as HTMLElement).style.color = '#8C7B6B'
+        }
+      }}
+    >
+      <span className="w-4 text-center text-base leading-none">{icon}</span>
+      {label}
+    </Link>
+  )
+}
+
 interface SidebarProps {
   user: {
     displayName?: string
@@ -38,39 +65,26 @@ export default function Sidebar({ user }: SidebarProps) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.href
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-              )}
-              style={
-                isActive
-                  ? { background: '#EDE5D8', color: '#2C2825', fontWeight: 500 }
-                  : { color: '#8C7B6B' }
-              }
-              onMouseEnter={e => {
-                if (!isActive) {
-                  (e.currentTarget as HTMLElement).style.background = '#EDE5D8'
-                  ;(e.currentTarget as HTMLElement).style.color = '#2C2825'
-                }
-              }}
-              onMouseLeave={e => {
-                if (!isActive) {
-                  (e.currentTarget as HTMLElement).style.background = 'transparent'
-                  ;(e.currentTarget as HTMLElement).style.color = '#8C7B6B'
-                }
-              }}
-            >
-              <span className="w-4 text-center text-base leading-none">{item.icon}</span>
-              {item.label}
-            </Link>
-          )
-        })}
+      <nav className="flex-1 px-3 py-4 flex flex-col">
+        <div className="space-y-0.5">
+          {NAV_ITEMS.map((item) => {
+            const isActive = pathname === item.href
+            return (
+              <NavLink key={item.href} href={item.href} icon={item.icon} label={item.label} isActive={isActive} />
+            )
+          })}
+        </div>
+
+        {/* PokerENG Trainer — แยก section */}
+        <div className="mt-auto pt-3" style={{ borderTop: '1px solid #DDD5C8' }}>
+          <p className="px-3 pb-1.5 text-xs font-medium" style={{ color: '#C4A882' }}>Trainer</p>
+          <NavLink
+            href={TRAINER_ITEM.href}
+            icon={TRAINER_ITEM.icon}
+            label={TRAINER_ITEM.label}
+            isActive={pathname.startsWith("/trainer")}
+          />
+        </div>
       </nav>
 
       {/* User */}

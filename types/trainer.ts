@@ -44,11 +44,21 @@ export interface Flashcard {
   english_example: string;
 }
 
+export interface WordBreakdown {
+  word: string;
+  thai: string;
+}
+
+export type PhraseType = "question" | "statement" | "transition" | "challenge";
+
 export interface CoachingPhrase {
   phrase: string;
   thai_meaning: string;
-  situation: string;
+  phrase_type: PhraseType;
+  word_breakdown: WordBreakdown[];
   keywords: string[];
+  situation: string;
+  similar_phrases: string[];
 }
 
 export interface ChatMessage {

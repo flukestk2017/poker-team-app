@@ -138,13 +138,39 @@
   --color-surface-2: var(--trainer-surface-2);
   --color-subtle: var(--trainer-subtle);
   --color-accent-dark: var(--trainer-accent-dark);
+
+  /* Trainer animations */
+  --animate-fade-in:      fadeIn 0.3s ease-in-out;
+  --animate-slide-up:     slideUp 0.3s ease-out;
+  --animate-waveform-1:   waveform 0.8s ease-in-out infinite;
+  --animate-waveform-2:   waveform 0.8s ease-in-out infinite 0.15s;
+  --animate-waveform-3:   waveform 0.8s ease-in-out infinite 0.3s;
+  --animate-waveform-4:   waveform 0.8s ease-in-out infinite 0.45s;
+  --animate-waveform-5:   waveform 0.8s ease-in-out infinite 0.6s;
 }
 
 :root {
-  --trainer-surface: #141619;
-  --trainer-surface-2: #1a1d23;
-  --trainer-subtle: #22272e;
-  --trainer-accent-dark: #16a34a;
+  /* Exact values from pokereng tailwind.config.ts */
+  --trainer-surface:      #141619;
+  --trainer-surface-2:    #1c1f24;
+  --trainer-subtle:       #374151;
+  --trainer-accent-dark:  #16a34a;
+}
+
+/* Keyframe definitions */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+@keyframes waveform {
+  0%, 100% { height: 8px; }
+  50%       { height: 32px; }
 }
 
 /* Scoped dark overrides — only active inside trainer layout wrapper */
