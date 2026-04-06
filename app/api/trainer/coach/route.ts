@@ -1,6 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAnthropicClient } from "@/lib/anthropic";
 import { COACH_SYSTEM } from "@/lib/prompts";
+import type { CoachAPIResponse } from "@/types/trainer";
+
+function parseCoachResponse(text: string): CoachAPIResponse {
+  try {
+    const cleaned = text.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
+    const parsed = JSON.parse(cleaned);
+    return {
+      message: parsed.message ?? text,
+      thai_translation: parsed.thai_translation ?? "",
+      vocab_hints: Array.isArray(parsed.vocab_hints) ? parsed.vocab_hints : [],
+      phrase_note: parsed.phrase_note ?? null,
+    };
+  } catch {
+    // Fallback: return raw text as message with empty helpers
+    return {
+      message: text,
+      thai_translation: "",
+      vocab_hints: [],
+      phrase_note: null,
+    };
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,7 +33,7 @@ export async function POST(req: NextRequest) {
     if (newSession || !messages || messages.length === 0) {
       const response = await anthropic.messages.create({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 512,
+        max_tokens: 768,
         system: COACH_SYSTEM,
         messages: [
           {
@@ -23,7 +45,7 @@ export async function POST(req: NextRequest) {
       });
       const block = response.content[0];
       const text = block.type === "text" ? block.text : "";
-      return NextResponse.json({ message: text });
+      return NextResponse.json(parseCoachResponse(text));
     }
 
     const formattedMessages = messages.map(
@@ -35,14 +57,14 @@ export async function POST(req: NextRequest) {
 
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 512,
+      max_tokens: 768,
       system: COACH_SYSTEM,
       messages: formattedMessages,
     });
 
     const block = response.content[0];
     const text = block.type === "text" ? block.text : "";
-    return NextResponse.json({ message: text });
+    return NextResponse.json(parseCoachResponse(text));
   } catch (error) {
     console.error("Coach AI error:", error);
     return NextResponse.json(

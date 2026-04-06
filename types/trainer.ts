@@ -59,11 +59,24 @@ export interface CoachingPhrase {
   keywords: string[];
   situation: string;
   similar_phrases: string[];
+  /** Short English label for Match Mode */
+  match_term?: string;
+  /** Short Thai meaning for Match Mode */
+  match_thai?: string;
 }
+
+export type CoachMode = "guided" | "semi" | "independent";
 
 export interface ChatMessage {
   role: "coach" | "user";
   content: string;
+}
+
+export interface CoachAPIResponse {
+  message: string;
+  thai_translation: string;
+  vocab_hints: string[];
+  phrase_note: string | null;
 }
 
 export interface QuizQuestion {

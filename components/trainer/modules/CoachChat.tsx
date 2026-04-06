@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import type { ChatMessage } from "@/types/trainer";
+import type { ChatMessage, CoachMode, CoachAPIResponse } from "@/types/trainer";
 
+// ─── Notable phrases to highlight in coach messages ────────────────────────
 const NOTABLE_PHRASES = [
   "walk me through",
   "what's your plan",
@@ -27,23 +28,30 @@ const NOTABLE_PHRASES = [
   "thought process",
 ];
 
-function extractPhraseTag(text: string): { body: string; phraseNote: string | null } {
-  const match = text.match(/\[Phrase:\s*([^\]]+)\]/i);
-  if (!match) return { body: text, phraseNote: null };
-  return {
-    body: text.replace(match[0], "").trim(),
-    phraseNote: match[1].trim(),
-  };
-}
+// ─── Sentence templates for guided mode ────────────────────────────────────
+const SENTENCE_TEMPLATES = [
+  "I think I should ___ because ___",
+  "My range here includes ___ and ___",
+  "The reason I ___ is that ___",
+  "Given that his range is ___, I would ___",
+];
 
+// ─── Mode config ────────────────────────────────────────────────────────────
+const MODE_CONFIG: Record<CoachMode, { label: string; desc: string; color: string }> = {
+  guided:      { label: "Guided",      desc: "คำแปล + vocab hints + template",  color: "#22c55e" },
+  semi:        { label: "Semi",        desc: "คำแปล + vocab hints",              color: "#f59e0b" },
+  independent: { label: "Independent", desc: "ภาษาอังกฤษล้วน",                  color: "#6b7280" },
+};
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
 function highlightPhrases(text: string): React.ReactNode[] {
   const lower = text.toLowerCase();
-  const segments: { start: number; end: number; phrase: string }[] = [];
+  const segments: { start: number; end: number }[] = [];
 
   for (const phrase of NOTABLE_PHRASES) {
     let idx = lower.indexOf(phrase);
     while (idx !== -1) {
-      segments.push({ start: idx, end: idx + phrase.length, phrase });
+      segments.push({ start: idx, end: idx + phrase.length });
       idx = lower.indexOf(phrase, idx + 1);
     }
   }
@@ -77,33 +85,48 @@ function highlightPhrases(text: string): React.ReactNode[] {
   return nodes;
 }
 
+// ─── Per-message metadata ───────────────────────────────────────────────────
+interface CoachMeta {
+  thaiTranslation: string;
+  vocabHints: string[];
+  phraseNote: string | null;
+}
+
 interface CoachChatProps {
   onComplete: () => void;
 }
 
 export default function CoachChat({ onComplete }: CoachChatProps) {
+  const [mode, setMode] = useState<CoachMode>("guided");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [coachMeta, setCoachMeta] = useState<Record<number, CoachMeta>>({});
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
   const [msgCount, setMsgCount] = useState(0);
-  const [phraseNotes, setPhraseNotes] = useState<Record<number, string>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, loading]);
 
   useEffect(() => {
     startSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Get the latest coach message's vocab hints for the input area
+  const latestCoachIdx = [...Array(messages.length).keys()]
+    .reverse()
+    .find((i) => messages[i].role === "coach");
+  const latestVocabHints =
+    latestCoachIdx !== undefined ? (coachMeta[latestCoachIdx]?.vocabHints ?? []) : [];
+
   async function startSession() {
     setLoading(true);
     setMessages([]);
+    setCoachMeta({});
     setMsgCount(0);
-    setPhraseNotes({});
     setSessionStarted(false);
 
     try {
@@ -112,11 +135,16 @@ export default function CoachChat({ onComplete }: CoachChatProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ newSession: true }),
       });
-      const data = await res.json();
+      const data: CoachAPIResponse = await res.json();
       if (data.message) {
-        const { body, phraseNote } = extractPhraseTag(data.message);
-        setMessages([{ role: "coach", content: body }]);
-        if (phraseNote) setPhraseNotes({ 0: phraseNote });
+        setMessages([{ role: "coach", content: data.message }]);
+        setCoachMeta({
+          0: {
+            thaiTranslation: data.thai_translation,
+            vocabHints: data.vocab_hints,
+            phraseNote: data.phrase_note,
+          },
+        });
         setSessionStarted(true);
       }
     } catch {
@@ -142,20 +170,22 @@ export default function CoachChat({ onComplete }: CoachChatProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: newMessages }),
       });
-      const data = await res.json();
+      const data: CoachAPIResponse = await res.json();
       if (data.message) {
-        const { body, phraseNote } = extractPhraseTag(data.message);
-        const coachMsg: ChatMessage = { role: "coach", content: body };
-        const coachMsgIndex = newMessages.length;
-
-        setMessages((m) => [...m, coachMsg]);
-        if (phraseNote) {
-          setPhraseNotes((p) => ({ ...p, [coachMsgIndex]: phraseNote }));
-        }
+        const coachIdx = newMessages.length;
+        setMessages((m) => [...m, { role: "coach", content: data.message }]);
+        setCoachMeta((prev) => ({
+          ...prev,
+          [coachIdx]: {
+            thaiTranslation: data.thai_translation,
+            vocabHints: data.vocab_hints,
+            phraseNote: data.phrase_note,
+          },
+        }));
 
         const newCount = msgCount + 1;
         setMsgCount(newCount);
-        await saveQA(messages[0]?.content ?? "", userMsg.content, body);
+        await saveQA(messages[0]?.content ?? "", userMsg.content, data.message);
         if (newCount >= 3) onComplete();
       }
     } catch {
@@ -176,52 +206,100 @@ export default function CoachChat({ onComplete }: CoachChatProps) {
     });
   }
 
+  function applyTemplate(template: string) {
+    setInput(template);
+  }
+
+  const showThai = mode === "guided" || mode === "semi";
+  const showVocab = mode === "guided" || mode === "semi";
+  const showTemplates = mode === "guided";
+
   return (
-    <div className="flex flex-col h-[560px]">
-      <div className="flex items-center gap-2 mb-3 text-xs text-muted">
-        <span className="bg-accent/20 text-accent rounded px-1.5 py-0.5 font-medium">highlighted</span>
-        <span>= coaching phrase worth remembering</span>
+    <div className="flex flex-col h-[600px]">
+
+      {/* ── Mode toggle ── */}
+      <div className="flex items-center gap-1 mb-3 p-1 bg-surface rounded-lg border border-border">
+        {(Object.keys(MODE_CONFIG) as CoachMode[]).map((m) => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className="flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors"
+            style={
+              mode === m
+                ? { background: MODE_CONFIG[m].color, color: "#0d0f12" }
+                : { color: "#6b7280" }
+            }
+          >
+            {MODE_CONFIG[m].label}
+          </button>
+        ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-1">
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex gap-3 animate-fade-in ${msg.role === "user" ? "flex-row-reverse" : ""}`}
-          >
-            {msg.role === "coach" && (
-              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-sm flex-shrink-0">
-                🎓
-              </div>
-            )}
-            <div className="max-w-[80%] space-y-2">
-              <div
-                className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                  msg.role === "coach"
-                    ? "bg-surface-2 border border-border text-gray-200 rounded-tl-sm"
-                    : "bg-accent text-white rounded-tr-sm"
-                }`}
-              >
-                {msg.role === "coach" && (
-                  <p className="text-xs text-muted mb-1 font-medium">Coach Alex</p>
-                )}
-                <p className="whitespace-pre-wrap">
-                  {msg.role === "coach" ? highlightPhrases(msg.content) : msg.content}
-                </p>
-              </div>
+      {/* Mode description */}
+      <p className="text-xs text-muted mb-3 px-1">
+        {MODE_CONFIG[mode].desc}
+        {mode !== "independent" && (
+          <span className="ml-2 text-accent/70">
+            • คำที่ highlight = coaching phrase
+          </span>
+        )}
+      </p>
 
-              {msg.role === "coach" && phraseNotes[i] && (
-                <div className="flex items-start gap-1.5 px-1 animate-slide-up">
-                  <span className="text-accent text-xs mt-0.5">💡</span>
-                  <p className="text-xs text-gray-400">
-                    <span className="text-accent font-medium">Phrase to note: </span>
-                    &ldquo;{phraseNotes[i]}&rdquo;
-                  </p>
+      {/* ── Chat messages ── */}
+      <div className="flex-1 overflow-y-auto space-y-4 mb-3 pr-1">
+        {messages.map((msg, i) => {
+          const meta = coachMeta[i];
+          return (
+            <div
+              key={i}
+              className={`flex gap-3 animate-fade-in ${msg.role === "user" ? "flex-row-reverse" : ""}`}
+            >
+              {msg.role === "coach" && (
+                <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-sm flex-shrink-0">
+                  🎓
                 </div>
               )}
+              <div className="max-w-[82%] space-y-1.5">
+                {/* Bubble */}
+                <div
+                  className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                    msg.role === "coach"
+                      ? "bg-surface-2 border border-border text-gray-200 rounded-tl-sm"
+                      : "bg-accent text-white rounded-tr-sm"
+                  }`}
+                >
+                  {msg.role === "coach" && (
+                    <p className="text-xs text-muted mb-1 font-medium">Coach Alex</p>
+                  )}
+                  <p className="whitespace-pre-wrap">
+                    {msg.role === "coach" ? highlightPhrases(msg.content) : msg.content}
+                  </p>
+                </div>
+
+                {/* Thai translation — guided + semi */}
+                {msg.role === "coach" && showThai && meta?.thaiTranslation && (
+                  <div className="px-1 animate-slide-up">
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                      <span className="text-muted font-medium">🇹🇭 </span>
+                      {meta.thaiTranslation}
+                    </p>
+                  </div>
+                )}
+
+                {/* Phrase note */}
+                {msg.role === "coach" && meta?.phraseNote && (
+                  <div className="flex items-start gap-1.5 px-1 animate-slide-up">
+                    <span className="text-accent text-xs mt-0.5">💡</span>
+                    <p className="text-xs text-gray-400">
+                      <span className="text-accent font-medium">Phrase: </span>
+                      &ldquo;{meta.phraseNote}&rdquo;
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {loading && (
           <div className="flex gap-3">
@@ -240,12 +318,45 @@ export default function CoachChat({ onComplete }: CoachChatProps) {
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-border pt-4 space-y-3">
+      {/* ── Input area ── */}
+      <div className="border-t border-border pt-3 space-y-2">
+
+        {/* Vocab hints — guided + semi */}
+        {showVocab && latestVocabHints.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap px-0.5">
+            <span className="text-xs text-muted shrink-0">Vocab:</span>
+            {latestVocabHints.map((hint, i) => (
+              <span
+                key={i}
+                className="text-xs bg-surface-2 border border-border text-gray-300 rounded-full px-2.5 py-0.5"
+              >
+                {hint}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Sentence templates — guided only */}
+        {showTemplates && (
+          <div className="flex gap-1.5 flex-wrap">
+            {SENTENCE_TEMPLATES.map((tpl, i) => (
+              <button
+                key={i}
+                onClick={() => applyTemplate(tpl)}
+                className="text-xs bg-surface-2 hover:bg-subtle border border-border text-gray-400 hover:text-white rounded-lg px-2.5 py-1 transition-colors"
+              >
+                {tpl}
+              </button>
+            ))}
+          </div>
+        )}
+
         {msgCount >= 3 && (
           <p className="text-xs text-accent text-center">
             Session complete! Start a new session or keep going.
           </p>
         )}
+
         <div className="flex gap-2">
           <button
             onClick={startSession}
@@ -259,7 +370,11 @@ export default function CoachChat({ onComplete }: CoachChatProps) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={loading || !sessionStarted}
-              placeholder="Type your answer in English..."
+              placeholder={
+                mode === "independent"
+                  ? "Type your answer in English..."
+                  : "พิมพ์คำตอบภาษาอังกฤษ..."
+              }
               className="flex-1 bg-surface-2 border border-border rounded-lg px-4 py-2.5 text-sm text-white placeholder-muted focus:outline-none focus:border-accent transition-colors disabled:opacity-50"
             />
             <button

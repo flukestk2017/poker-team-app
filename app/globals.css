@@ -147,6 +147,7 @@
   --animate-waveform-3:   waveform 0.8s ease-in-out infinite 0.3s;
   --animate-waveform-4:   waveform 0.8s ease-in-out infinite 0.45s;
   --animate-waveform-5:   waveform 0.8s ease-in-out infinite 0.6s;
+  --animate-shake:        shake 0.4s ease-in-out;
 }
 
 :root {
@@ -171,6 +172,14 @@
 @keyframes waveform {
   0%, 100% { height: 8px; }
   50%       { height: 32px; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-6px); }
+  40%      { transform: translateX(6px); }
+  60%      { transform: translateX(-4px); }
+  80%      { transform: translateX(4px); }
 }
 
 /* Scoped dark overrides — only active inside trainer layout wrapper */

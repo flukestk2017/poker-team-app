@@ -8,6 +8,7 @@ import type { Profile } from "@/types/trainer";
 const navItems = [
   { href: "/trainer/dashboard", label: "Dashboard", icon: "🏠" },
   { href: "/trainer/vocab", label: "Vocabulary", icon: "📚" },
+  { href: "/trainer/match", label: "Match", icon: "🎯" },
   { href: "/trainer/coach", label: "Coach Q&A", icon: "🎓" },
   { href: "/trainer/listen", label: "Listening", icon: "🎧" },
   { href: "/trainer/video", label: "Video", icon: "🎬" },
