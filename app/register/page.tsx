@@ -61,7 +61,6 @@ function RegisterPageOriginal() {
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#FAF8F5' }}>
       <div className="w-full max-w-sm">
-        {/* Header */}
         <div className="mb-8 text-center">
           <div
             className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-4"
@@ -73,7 +72,6 @@ function RegisterPageOriginal() {
           <p className="mt-1 text-sm" style={{ color: '#8C7B6B' }}>DEKpocarr</p>
         </div>
 
-        {/* Card */}
         <div
           className="rounded-2xl p-8 shadow-sm"
           style={{ background: '#FFFFFF', border: '1px solid #DDD5C8' }}
