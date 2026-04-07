@@ -1,9 +1,19 @@
+// REGISTRATION TEMPORARILY DISABLED
+// To re-enable: remove the redirect block below and restore the original component
+import { redirect } from 'next/navigation'
+
+export default function RegisterPage() {
+  redirect('/login')
+}
+
+// ─── Original component (preserved) ─────────────────────────────────────────
+/*
 'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
 
-export default function RegisterPage() {
+function RegisterPageOriginal() {
   const [form, setForm] = useState({
     username: '',
     email: '',
@@ -189,3 +199,4 @@ export default function RegisterPage() {
     </div>
   )
 }
+*/

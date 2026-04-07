@@ -140,12 +140,14 @@ function LoginForm() {
               {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
             </button>
 
+            {/* REGISTRATION DISABLED — re-enable by uncommenting below
             <p className="text-center text-sm" style={{ color: '#8C7B6B' }}>
               ยังไม่มีบัญชี?{' '}
               <Link href="/register" className="font-medium hover:underline" style={{ color: '#8B6F47' }}>
                 สมัครสมาชิก
               </Link>
             </p>
+            */}
           </form>
         </div>
       </div>
