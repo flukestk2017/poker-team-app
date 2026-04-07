@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { CoachingPhrase, PhraseType } from "@/types/trainer";
 import { SEED_PHRASES, PHRASE_TYPE_CONFIG } from "@/lib/phrases";
+import { useSpeech } from "@/hooks/useSpeech";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -45,27 +46,6 @@ function fuzzyCheck(input: string, thai_meaning: string): boolean {
     )
   );
   return matched.length >= Math.ceil(targetWords.length / 2);
-}
-
-// ── Speech hook ───────────────────────────────────────────────────────────────
-
-function useSpeech() {
-  const [supported, setSupported] = useState(false);
-
-  useEffect(() => {
-    setSupported(typeof window !== "undefined" && "speechSynthesis" in window);
-  }, []);
-
-  const speak = useCallback((text: string) => {
-    if (!supported) return;
-    window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.lang = "en-US";
-    utt.rate = 0.85;
-    window.speechSynthesis.speak(utt);
-  }, [supported]);
-
-  return { supported, speak };
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -251,6 +231,13 @@ export default function VocabFlashcard({ onComplete }: VocabFlashcardProps) {
               <h2 className="text-2xl font-semibold text-white text-center leading-snug">
                 &ldquo;{highlightKeywords(current.phrase, current.keywords)}&rdquo;
               </h2>
+
+              {/* Thai pronunciation */}
+              {current.phrase_pronunciation && (
+                <p className="text-sm text-muted tracking-wide text-center">
+                  {current.phrase_pronunciation}
+                </p>
+              )}
 
               {/* Keyword pills */}
               {current.keywords.length > 0 && (

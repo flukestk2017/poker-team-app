@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { CoachingPhrase, PhraseType } from "@/types/trainer";
 import { SEED_PHRASES, PHRASE_TYPE_CONFIG } from "@/lib/phrases";
+import { useSpeech } from "@/hooks/useSpeech";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -12,6 +13,7 @@ interface MatchCard {
   match_thai: string;
   phrase_type: PhraseType;
   situation?: string;
+  pronunciation?: string;
 }
 
 type ItemState   = "idle" | "selected" | "correct" | "wrong";
@@ -47,11 +49,12 @@ function shuffle<T>(arr: T[]): T[] {
 
 function toMatchCard(p: CoachingPhrase): MatchCard {
   return {
-    id: p.phrase,
-    match_term:  p.match_term  ?? (p.phrase.length      > 42 ? p.phrase.slice(0, 40)      + "…" : p.phrase),
-    match_thai:  p.match_thai  ?? (p.thai_meaning.length > 36 ? p.thai_meaning.slice(0, 34) + "…" : p.thai_meaning),
-    phrase_type: p.phrase_type,
-    situation:   p.situation,
+    id:            p.phrase,
+    match_term:    p.match_term  ?? (p.phrase.length      > 42 ? p.phrase.slice(0, 40)      + "…" : p.phrase),
+    match_thai:    p.match_thai  ?? (p.thai_meaning.length > 36 ? p.thai_meaning.slice(0, 34) + "…" : p.thai_meaning),
+    phrase_type:   p.phrase_type,
+    situation:     p.situation,
+    pronunciation: p.phrase_pronunciation,
   };
 }
 
@@ -71,10 +74,11 @@ function buildWordDeck(): MatchCard[] {
       if (seen.has(key)) continue;
       seen.add(key);
       cards.push({
-        id:          key,
-        match_term:  wb.word,
-        match_thai:  wb.thai,
-        phrase_type: p.phrase_type,
+        id:            key,
+        match_term:    wb.word,
+        match_thai:    wb.thai,
+        phrase_type:   p.phrase_type,
+        pronunciation: wb.pronunciation,
       });
     }
   }
@@ -98,6 +102,8 @@ interface MatchModeProps {
 }
 
 export default function MatchMode({ onComplete }: MatchModeProps) {
+
+  const { supported: speechSupported, speak } = useSpeech();
 
   // ── Setup / nav
   const [phase,     setPhase]     = useState<Phase>("setup");
@@ -758,13 +764,31 @@ export default function MatchMode({ onComplete }: MatchModeProps) {
         )}
 
         {/* English word/phrase — big */}
-        <h2 className={`font-bold text-white leading-snug ${gameMode === "word" ? "text-4xl sm:text-5xl tracking-wide" : "text-2xl sm:text-3xl"}`}>
-          {gameMode === "word" ? currentCard.match_term : <>&ldquo;{currentCard.match_term}&rdquo;</>}
-        </h2>
+        <div className="flex items-center justify-center gap-3">
+          <h2 className={`font-bold text-white leading-snug ${gameMode === "word" ? "text-4xl sm:text-5xl tracking-wide" : "text-2xl sm:text-3xl"}`}>
+            {gameMode === "word" ? currentCard.match_term : <>&ldquo;{currentCard.match_term}&rdquo;</>}
+          </h2>
+          {speechSupported && (
+            <button
+              onClick={() => speak(currentCard.match_term)}
+              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-surface border border-border hover:border-accent/50 hover:bg-accent/10 transition-colors text-muted hover:text-white"
+              title="Listen"
+            >
+              🔊
+            </button>
+          )}
+        </div>
+
+        {/* Thai pronunciation */}
+        {currentCard.pronunciation && (
+          <p className="text-sm text-muted tracking-wide">
+            {currentCard.pronunciation}
+          </p>
+        )}
 
         {/* Situation context — sentence mode only */}
         {gameMode !== "word" && currentCard.situation && (
-          <p className="text-xs text-muted leading-relaxed max-w-xs mx-auto">
+          <p className="text-xs text-muted leading-relaxed max-w-xs mx-auto opacity-70">
             {currentCard.situation}
           </p>
         )}

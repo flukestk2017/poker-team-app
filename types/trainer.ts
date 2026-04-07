@@ -47,6 +47,7 @@ export interface Flashcard {
 export interface WordBreakdown {
   word: string;
   thai: string;
+  pronunciation?: string;
 }
 
 export type PhraseType = "question" | "statement" | "transition" | "challenge";
@@ -63,6 +64,8 @@ export interface CoachingPhrase {
   match_term?: string;
   /** Short Thai meaning for Match Mode */
   match_thai?: string;
+  /** Thai phonetic pronunciation of the full phrase */
+  phrase_pronunciation?: string;
 }
 
 export type CoachMode = "guided" | "semi" | "independent";

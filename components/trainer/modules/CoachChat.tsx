@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import type { ChatMessage, CoachMode, CoachAPIResponse } from "@/types/trainer";
+import { useSpeech } from "@/hooks/useSpeech";
 
 // ─── Notable phrases to highlight in coach messages ────────────────────────
 const NOTABLE_PHRASES = [
@@ -28,6 +29,31 @@ const NOTABLE_PHRASES = [
   "thought process",
 ];
 
+// ─── Pronunciation map for notable phrases (guided mode) ───────────────────
+const NOTABLE_PHRASE_PRONUNCIATION: Record<string, string> = {
+  "walk me through":      "วอค มี ทรู",
+  "what's your plan":     "วอทส์ ยัวร์ แพลน",
+  "i would argue":        "ไอ วูด อาร์กิว",
+  "the reason why":       "เดอะ รีซัน วาย",
+  "given that":           "กิฟเวน แดท",
+  "you're essentially":   "ยัวร์ อิสเซ็นเชียลลี",
+  "does that make sense": "ดัซ แดท เมค เซนส์",
+  "trying to accomplish": "ไทรอิง ทู แอคคอมพลิช",
+  "underestimating":      "อันเดอร์เอสติเมทิง",
+  "over-bluff":           "โอเวอร์บลัฟ",
+  "from his perspective": "ฟรอม ฮิส เพอร์สเปคทิฟ",
+  "get value from":       "เก็ต แวลลิว ฟรอม",
+  "the issue i have":     "เดอะ อิชชู ไอ แฮฟ",
+  "in theory":            "อิน ธีโอรี",
+  "change things":        "เชนจ์ ธิงส์",
+  "balance":              "แบลลันซ์",
+  "valid point":          "แวลลิด พอยท์",
+  "tough spot":           "ทัฟ สปอต",
+  "run through":          "รัน ทรู",
+  "range breakdown":      "เรนจ์ เบรคดาวน์",
+  "thought process":      "ธอท โพรเซส",
+};
+
 // ─── Sentence templates for guided mode ────────────────────────────────────
 const SENTENCE_TEMPLATES = [
   "I think I should ___ because ___",
@@ -44,7 +70,7 @@ const MODE_CONFIG: Record<CoachMode, { label: string; desc: string; color: strin
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-function highlightPhrases(text: string): React.ReactNode[] {
+function highlightPhrases(text: string, pronunciationMap?: Record<string, string>): React.ReactNode[] {
   const lower = text.toLowerCase();
   const segments: { start: number; end: number }[] = [];
 
@@ -70,14 +96,18 @@ function highlightPhrases(text: string): React.ReactNode[] {
   let cursor = 0;
   for (const seg of merged) {
     if (cursor < seg.start) nodes.push(text.slice(cursor, seg.start));
+    const matchedText = text.slice(seg.start, seg.end);
+    const pronKey = matchedText.toLowerCase();
+    const pronunciation = pronunciationMap?.[pronKey];
     nodes.push(
-      <mark
-        key={seg.start}
-        className="bg-accent/20 text-accent rounded px-0.5 not-italic font-medium"
-        title="Coaching phrase"
-      >
-        {text.slice(seg.start, seg.end)}
-      </mark>
+      <span key={seg.start} className="inline-flex flex-col items-center mx-0.5 align-bottom">
+        <mark className="bg-accent/20 text-accent rounded px-0.5 not-italic font-medium">
+          {matchedText}
+        </mark>
+        {pronunciation && (
+          <span className="text-[9px] text-muted leading-none mt-0.5">{pronunciation}</span>
+        )}
+      </span>
     );
     cursor = seg.end;
   }
@@ -97,6 +127,7 @@ interface CoachChatProps {
 }
 
 export default function CoachChat({ onComplete }: CoachChatProps) {
+  const { supported: speechSupported, speak } = useSpeech();
   const [mode, setMode] = useState<CoachMode>("guided");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [coachMeta, setCoachMeta] = useState<Record<number, CoachMeta>>({});
@@ -269,10 +300,23 @@ export default function CoachChat({ onComplete }: CoachChatProps) {
                   }`}
                 >
                   {msg.role === "coach" && (
-                    <p className="text-xs text-muted mb-1 font-medium">Coach Alex</p>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-muted font-medium">Coach Alex</p>
+                      {speechSupported && (
+                        <button
+                          onClick={() => speak(msg.content)}
+                          className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-surface transition-colors text-muted hover:text-white text-xs"
+                          title="Listen"
+                        >
+                          🔊
+                        </button>
+                      )}
+                    </div>
                   )}
                   <p className="whitespace-pre-wrap">
-                    {msg.role === "coach" ? highlightPhrases(msg.content) : msg.content}
+                    {msg.role === "coach"
+                      ? highlightPhrases(msg.content, showTemplates ? NOTABLE_PHRASE_PRONUNCIATION : undefined)
+                      : msg.content}
                   </p>
                 </div>
 

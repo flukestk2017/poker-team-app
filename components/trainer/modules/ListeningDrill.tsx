@@ -6,14 +6,17 @@ const SCRIPTS = [
   {
     title: "C-bet Frequency",
     text: "When you continuation bet too frequently on all board textures, your opponents can exploit you by floating and raising with a wide range. The key is to recognize which boards favor your range and c-bet more selectively. On dry boards like king-seven-two rainbow, your range has a clear advantage and you can bet with high frequency. However, on wet boards like nine-eight-six two-tone, your opponent can have many strong draws and you should check more often to protect your checking range.",
+    pronunciation_hint: "continuation bet (คอนทินิวเอชัน เบท) · c-bet (ซี-เบท) · exploit (เอ็กซ์พลอยท์) · floating (ฟลอทอิง) · board texture (บอร์ด เท็กซ์เชอร์)",
   },
   {
     title: "Pot Odds and Equity",
     text: "Understanding pot odds is fundamental to making profitable decisions in poker. When your opponent bets, you need to calculate the price you are getting to call. If the pot is one hundred dollars and your opponent bets fifty dollars, you need to call fifty to win one hundred and fifty, giving you pot odds of exactly one in three, or thirty three percent. You should call if your equity against his range is greater than thirty three percent. This calculation becomes more complex when you factor in implied odds and reverse implied odds.",
+    pronunciation_hint: "pot odds (พอท ออดส์) · equity (เอ็กวิตี) · implied odds (อิมพลายด์ ออดส์) · profitable (โพรฟิทะเบิล) · calculate (แคลคิวเลท)",
   },
   {
     title: "Range Polarization",
     text: "A polarized betting range consists of very strong hands and complete bluffs, with very few medium-strength hands. When you bet big on the river, your range should typically be polarized because you want to maximize value with your strong hands and apply maximum pressure with your bluffs. The optimal bluff-to-value ratio depends on your bet size. If you bet the full pot, you need to bluff with one hand for every two value hands to be unexploitable. Your opponent needs thirty three percent equity to call profitably against a pot-sized bet.",
+    pronunciation_hint: "polarized (โพลาไรซ์ด) · bluff (บลัฟ) · unexploitable (อัน-เอ็กซ์พลอยทะเบิล) · bluff-to-value ratio (บลัฟ-ทู-แวลลิว เรโช) · pot-sized bet (พอท-ไซซ์ด เบท)",
   },
 ];
 
@@ -135,7 +138,10 @@ export default function ListeningDrill({ onComplete }: ListeningDrillProps) {
       </div>
 
       <div className="bg-surface-2 border border-border rounded-xl p-6 text-center">
-        <p className="text-sm text-muted mb-4">{current.title}</p>
+        <p className="text-sm text-muted mb-1">{current.title}</p>
+        <p className="text-xs text-muted/70 mb-4 leading-relaxed max-w-md mx-auto">
+          🔤 {current.pronunciation_hint}
+        </p>
 
         <div className="flex items-end justify-center gap-1 h-10 mb-6">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
