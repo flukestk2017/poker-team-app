@@ -18,7 +18,7 @@ type ItemState   = "idle" | "selected" | "correct" | "wrong";
 type SWOptState  = "idle" | "selected-correct" | "selected-wrong" | "reveal-correct";
 type RoundSize   = 10 | 20 | 50;
 type Phase       = "setup" | "loading" | "playing" | "summary";
-type GameMode    = "match" | "single";
+type GameMode    = "match" | "single" | "word";
 type SetupStep   = "mode" | "size";
 
 interface ColumnItem {
@@ -59,6 +59,26 @@ function formatTime(secs: number): string {
   const m = Math.floor(secs / 60).toString().padStart(2, "0");
   const s = (secs % 60).toString().padStart(2, "0");
   return `${m}:${s}`;
+}
+
+/** Build a deduplicated word deck from all SEED_PHRASES word_breakdown */
+function buildWordDeck(): MatchCard[] {
+  const seen = new Set<string>();
+  const cards: MatchCard[] = [];
+  for (const p of SEED_PHRASES) {
+    for (const wb of p.word_breakdown) {
+      const key = wb.word.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      cards.push({
+        id:          key,
+        match_term:  wb.word,
+        match_thai:  wb.thai,
+        phrase_type: p.phrase_type,
+      });
+    }
+  }
+  return cards;
 }
 
 /** Generate 4 SW options: 1 correct + 3 random distractors from the full pool */
@@ -114,7 +134,7 @@ export default function MatchMode({ onComplete }: MatchModeProps) {
   const currentRound  = allCards.slice(roundIndex * roundSize, (roundIndex + 1) * roundSize);
   const totalRounds   = allCards.length > 0 ? Math.ceil(allCards.length / roundSize) : 1;
   const hasNextRound  = (roundIndex + 1) * roundSize < allCards.length;
-  const activeRound   = gameMode === "single" ? swRoundCards : currentRound;
+  const activeRound   = gameMode === "match" ? currentRound : swRoundCards;
   const missedCards   = activeRound.filter((c) => erroredIds.has(c.id));
 
   // ── Timer
@@ -165,6 +185,7 @@ export default function MatchMode({ onComplete }: MatchModeProps) {
     if (mode === "match") {
       buildColumns(slice);
     } else {
+      // "single" and "word" both use SW state
       buildSWRound(slice, cards);
     }
     setPhase("playing");
@@ -175,6 +196,16 @@ export default function MatchMode({ onComplete }: MatchModeProps) {
     setRoundSize(size);
     setRoundIndex(0);
     setLoadError("");
+
+    // Word mode — use local word deck only
+    if (gameMode === "word") {
+      const wordDeck = shuffle(buildWordDeck());
+      const cards    = wordDeck.slice(0, size);
+      setAllCards(wordDeck);
+      buildSWRound(cards, wordDeck);
+      setPhase("playing");
+      return;
+    }
 
     if (size <= 20) {
       const cards = shuffle(SEED_PHRASES).slice(0, size).map(toMatchCard);
@@ -358,7 +389,7 @@ export default function MatchMode({ onComplete }: MatchModeProps) {
     ? Math.round((matchedCount / swRoundCards.length) * 100)
     : 100;
 
-  const accuracy = gameMode === "single" ? swAccuracy : matchAccuracy;
+  const accuracy = gameMode === "match" ? matchAccuracy : swAccuracy;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER — SETUP
@@ -388,13 +419,13 @@ export default function MatchMode({ onComplete }: MatchModeProps) {
                   </p>
                   <p className="text-xs text-muted mt-1 leading-relaxed">
                     2 คอลัมน์ — กด EN ซ้าย จับคู่กับ ไทย ขวา<br/>
-                    เห็นทุกคำพร้อมกัน เล่นได้เร็ว
+                    เห็นทุกประโยคพร้อมกัน เล่นได้เร็ว
                   </p>
                 </div>
               </div>
             </button>
 
-            {/* Single word mode */}
+            {/* Single sentence mode */}
             <button
               onClick={() => { setGameMode("single"); setSetupStep("size"); }}
               className="w-full p-5 rounded-2xl border border-border bg-surface-2 hover:border-accent/50 hover:bg-accent/5 transition-all group text-left"
@@ -403,11 +434,30 @@ export default function MatchMode({ onComplete }: MatchModeProps) {
                 <span className="text-3xl mt-0.5">📝</span>
                 <div>
                   <p className="text-white font-bold text-base group-hover:text-accent transition-colors">
-                    ทีละคำ
+                    ทีละประโยค
                   </p>
                   <p className="text-xs text-muted mt-1 leading-relaxed">
                     ทีละ 1 phrase พร้อม 4 ตัวเลือก<br/>
-                    เหมาะสำหรับฝึกจำแบบ focus ทีละคำ
+                    เหมาะสำหรับฝึกจำ poker phrases ทั้งประโยค
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            {/* Single word mode */}
+            <button
+              onClick={() => { setGameMode("word"); setSetupStep("size"); }}
+              className="w-full p-5 rounded-2xl border border-border bg-surface-2 hover:border-accent/50 hover:bg-accent/5 transition-all group text-left"
+            >
+              <div className="flex items-start gap-4">
+                <span className="text-3xl mt-0.5">🔤</span>
+                <div>
+                  <p className="text-white font-bold text-base group-hover:text-accent transition-colors">
+                    คำเดี่ยว
+                  </p>
+                  <p className="text-xs text-muted mt-1 leading-relaxed">
+                    ทีละ 1 คำ พร้อม 4 ตัวเลือกความหมาย<br/>
+                    ฝึกคำศัพท์จาก word breakdown ของทุก phrase
                   </p>
                 </div>
               </div>
@@ -431,7 +481,7 @@ export default function MatchMode({ onComplete }: MatchModeProps) {
           </button>
           <div>
             <h2 className="text-xl font-bold text-white">
-              {gameMode === "match" ? "🎯 จับคู่" : "📝 ทีละคำ"}
+              {gameMode === "match" ? "🎯 จับคู่" : gameMode === "single" ? "📝 ทีละประโยค" : "🔤 คำเดี่ยว"}
             </h2>
             <p className="text-sm text-muted">เลือกจำนวนคำต่อ round</p>
           </div>
@@ -497,7 +547,7 @@ export default function MatchMode({ onComplete }: MatchModeProps) {
           <div className="text-4xl mb-2">{accuracy >= 80 ? "🎉" : accuracy >= 60 ? "💪" : "📖"}</div>
           <h2 className="text-xl font-bold text-white">Round {roundIndex + 1} complete!</h2>
           <p className="text-sm text-muted">
-            {gameMode === "match" ? "🎯 จับคู่" : "📝 ทีละคำ"}
+            {gameMode === "match" ? "🎯 จับคู่" : gameMode === "single" ? "📝 ทีละประโยค" : "🔤 คำเดี่ยว"}
             {totalRounds > 1 && ` · Round ${roundIndex + 1} / ${totalRounds}`}
             {" · "}{activeRound.length} phrases
           </p>
@@ -546,11 +596,11 @@ export default function MatchMode({ onComplete }: MatchModeProps) {
 
         {/* Action buttons */}
         <div className="space-y-2">
-          {/* ทบทวนคำที่ผิด — Single Word mode only, shown when there are misses */}
-          {gameMode === "single" && missedCards.length > 0 && (
+          {/* ทบทวนคำที่ผิด — Single / Word mode only */}
+          {gameMode !== "match" && missedCards.length > 0 && (
             <button
               onClick={() => {
-                buildSWRound(missedCards, allCards.length > 0 ? allCards : SEED_PHRASES.map(toMatchCard));
+                buildSWRound(missedCards, allCards.length > 0 ? allCards : (gameMode === "word" ? buildWordDeck() : SEED_PHRASES.map(toMatchCard)));
                 setPhase("playing");
               }}
               className="w-full py-3 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 rounded-xl text-sm font-semibold transition-colors"
@@ -565,7 +615,7 @@ export default function MatchMode({ onComplete }: MatchModeProps) {
                 if (gameMode === "match") {
                   buildColumns(activeRound);
                 } else {
-                  buildSWRound(activeRound, allCards.length > 0 ? allCards : SEED_PHRASES.map(toMatchCard));
+                  buildSWRound(activeRound, allCards.length > 0 ? allCards : (gameMode === "word" ? buildWordDeck() : SEED_PHRASES.map(toMatchCard)));
                 }
                 setPhase("playing");
               }}
@@ -684,7 +734,7 @@ export default function MatchMode({ onComplete }: MatchModeProps) {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // RENDER — PLAYING SINGLE WORD MODE
+  // RENDER — PLAYING SINGLE / WORD MODE
   // ─────────────────────────────────────────────────────────────────────────────
   const currentCard = swRoundCards[swCurrentIdx];
   if (!currentCard) return null;
@@ -696,18 +746,24 @@ export default function MatchMode({ onComplete }: MatchModeProps) {
 
       {/* ── Main card ── */}
       <div className="bg-surface-2 border border-border rounded-2xl px-6 py-8 text-center space-y-4 animate-slide-up">
-        {/* Type badge */}
-        <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full border ${typeCfg.cls}`}>
-          {typeCfg.icon} {typeCfg.label}
-        </span>
+        {/* Type badge — show for sentence mode; word mode shows 🔤 label */}
+        {gameMode === "word" ? (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full border bg-amber-500/15 border-amber-400/30 text-amber-300">
+            🔤 คำเดี่ยว
+          </span>
+        ) : (
+          <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full border ${typeCfg.cls}`}>
+            {typeCfg.icon} {typeCfg.label}
+          </span>
+        )}
 
-        {/* English phrase — big */}
-        <h2 className="text-2xl sm:text-3xl font-bold text-white leading-snug">
-          &ldquo;{currentCard.match_term}&rdquo;
+        {/* English word/phrase — big */}
+        <h2 className={`font-bold text-white leading-snug ${gameMode === "word" ? "text-4xl sm:text-5xl tracking-wide" : "text-2xl sm:text-3xl"}`}>
+          {gameMode === "word" ? currentCard.match_term : <>&ldquo;{currentCard.match_term}&rdquo;</>}
         </h2>
 
-        {/* Situation context */}
-        {currentCard.situation && (
+        {/* Situation context — sentence mode only */}
+        {gameMode !== "word" && currentCard.situation && (
           <p className="text-xs text-muted leading-relaxed max-w-xs mx-auto">
             {currentCard.situation}
           </p>
